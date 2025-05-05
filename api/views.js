@@ -1,28 +1,26 @@
-// Simple persistent counter with cookie tracking
-import fs from 'fs';
-import path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
-const filePath = path.join(process.cwd(), 'views.json');
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
-export default async (req, res) => {
-  try {
-    // Initialize or read count
-    let data = { count: 0 };
-    if (fs.existsSync(filePath)) {
-      data = JSON.parse(fs.readFileSync(filePath));
-    }
+export default async function handler(req, res) {
+  const { data } = await supabase
+    .from('views')
+    .select('count')
+    .eq('id', 'profile')
+    .single();
 
-    // Only increment for new visitors
-    if (!req.cookies?.visited) {
-      data.count += 1;
-      fs.writeFileSync(filePath, JSON.stringify(data));
-    }
+  const currentCount = data?.count || 0;
 
-    // Set cookie (1 day expiry)
+  if (!req.cookies?.visited) {
+    await supabase
+      .from('views')
+      .upsert({ id: 'profile', count: currentCount + 1 });
+
     res.setHeader('Set-Cookie', 'visited=true; Max-Age=86400; Path=/');
-    res.status(200).json({ views: data.count });
-    
-  } catch (error) {
-    res.status(500).json({ error: "Counter failed" });
   }
-};
+
+  res.status(200).json({ views: currentCount + 1 });
+}
