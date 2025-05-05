@@ -1,8 +1,0 @@
-{
-  "routes": [
-    {
-      "src": "/api/views",
-      "dest": "/my-vercel-project/api/views.js"
-    }
-  ]
-}
