@@ -1,36 +1,28 @@
-// Import required modules
+// Simple persistent counter with cookie tracking
 import fs from 'fs';
 import path from 'path';
 
-// Path to store view count data
-const viewsPath = path.join(process.cwd(), 'views.json');
+const filePath = path.join(process.cwd(), 'views.json');
 
-export default async function handler(req, res) {
+export default async (req, res) => {
   try {
-    // 1. Initialize or read existing count
-    let viewsData = { count: 0 };
-    if (fs.existsSync(viewsPath)) {
-      viewsData = JSON.parse(fs.readFileSync(viewsPath, 'utf-8'));
+    // Initialize or read count
+    let data = { count: 0 };
+    if (fs.existsSync(filePath)) {
+      data = JSON.parse(fs.readFileSync(filePath));
     }
 
-    // 2. Check if user is new (via cookie)
-    const hasVisited = req.cookies?.hasVisited;
+    // Only increment for new visitors
+    if (!req.cookies?.visited) {
+      data.count += 1;
+      fs.writeFileSync(filePath, JSON.stringify(data));
+    }
+
+    // Set cookie (1 day expiry)
+    res.setHeader('Set-Cookie', 'visited=true; Max-Age=86400; Path=/');
+    res.status(200).json({ views: data.count });
     
-    // 3. Only increment for new visitors
-    if (!hasVisited) {
-      viewsData.count += 1;
-      fs.writeFileSync(viewsPath, JSON.stringify(viewsData));
-    }
-
-    // 4. Set cookie and return count
-    res.setHeader('Set-Cookie', 'hasVisited=true; Max-Age=86400; Path=/'); // 24h cookie
-    res.status(200).json({ 
-      views: viewsData.count,
-      updated: !hasVisited // For debugging
-    });
-
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to update views' });
+    res.status(500).json({ error: "Counter failed" });
   }
-}
+};
