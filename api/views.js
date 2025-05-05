@@ -1,17 +1,28 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
-export default function handler(req, res) {
-  const filePath = path.resolve('./views.json');
-  let count = 0;
+const filePath = '/tmp/views.json';
 
-  if (fs.existsSync(filePath)) {
-    count = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+function initFileIfMissing() {
+  if (!fs.existsSync(filePath)) {
+    fs.writeFileSync(filePath, JSON.stringify({ views: 0 }));
   }
-
-  count++;
-  fs.writeFileSync(filePath, JSON.stringify(count));
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.status(200).json({ views: count });
 }
+
+module.exports = (req, res) => {
+  try {
+    initFileIfMissing();
+
+    const fileData = fs.readFileSync(filePath, 'utf8');
+    const data = JSON.parse(fileData);
+    data.views += 1;
+
+    fs.writeFileSync(filePath, JSON.stringify(data));
+
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({ views: data.views });
+  } catch (error) {
+    console.error('Error in API:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
