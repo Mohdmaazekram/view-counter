@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = '/tmp/views.json';
+const filePath = '/tmp/views.json';  // Change this to /tmp
 
 function initFileIfMissing() {
   if (!fs.existsSync(filePath)) {
